@@ -164,10 +164,20 @@ class NetworkNode:
                 print(f"Node {self.node_id}: 수신한 블록 #{block.index} 추가 실패 (유효성 검사 등).")
         elif block.index > current_last_block.index:
             # 더 긴 체인을 받았을 가능성 (체인 재구성 필요)
-            print(f"Node {self.node_id}: 현재 체인보다 긴 블록(인덱스 {block.index})을 수신. 체인 교체 시도 필요 (미구현).")
-            # 실제로는 해당 sender_peer에게 이전 블록들을 요청하여 전체 체인을 받아와 검증 후 교체 (resolve_conflicts)
-            # 여기서는 간단히 더 긴 체인이면 무조건 받아들이지 않음 (가장 기본적인 PoW만 따름)
-            # 실제로는 복잡한 체인 동기화 및 가장 긴 유효한 체인 선택 로직 필요
+            print(f"Node {self.node_id}: 현재 체인 (길이 {current_last_block.index+1}, 마지막 블록 #{current_last_block.index})보다 " +
+                  f"더 긴 체인에 속할 가능성이 있는 블록 #{block.index} (발신: {sender_peer.node_id})을 수신했습니다. " +
+                  "체인 충돌 해결을 시도합니다...")
+
+            # resolve_conflicts는 알려진 피어들의 체인을 확인하여 가장 길고 유효한 체인으로 교체 시도.
+            # sender_peer가 self.peers 목록에 있어야 해당 피어의 전체 체인이 검토 대상이 됩니다.
+            # 일반적으로 블록은 피어로부터 수신되므로, sender_peer는 self.peers에 포함되어 있을 것입니다.
+            if self.resolve_conflicts(self.peers):
+                print(f"Node {self.node_id}: 체인 충돌 해결 성공. 체인이 업데이트되었을 수 있습니다. " +
+                      f"새로운 마지막 블록 인덱스: {self.blockchain.get_last_block().index}")
+                # resolve_conflicts가 성공하면, 멤풀은 새 체인에 맞게 정리됩니다.
+                # 수신된 block은 새 체인의 일부이거나, 새 체인에 의해 무효화되었을 수 있습니다.
+            else:
+                print(f"Node {self.node_id}: 체인 충돌 해결 시도 후, 현재 체인이 유지되었습니다 (변경 없음 또는 실패).")
         else:
             # 이미 가지고 있는 블록이거나, 이전 블록일 수 있음
             # print(f"Node {self.node_id}: 수신한 블록 #{block.index}은 현재 체인에 적합하지 않음 (너무 오래되었거나 이미 처리됨).")
