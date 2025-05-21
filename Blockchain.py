@@ -35,7 +35,7 @@ class Blockchain:
             block_header_string = json.dumps(block_header_data_for_pow, sort_keys=True).encode()
             temp_hash = hashlib.sha256(block_header_string).hexdigest()
             if temp_hash.startswith(target_prefix):
-                # print(f"  Node {self.node_id}: PoW 조건 만족! Nonce: {nonce}, 해시: {temp_hash[:10]}...")
+                print(f"  Node {self.node_id}: PoW 조건 만족! Nonce: {nonce}, 해시: {temp_hash[:10]}...")
                 return nonce, temp_hash # Nonce와 최종 해시 반환
             nonce += 1
             if nonce % 500000 == 0: # 진행 상황 표시 (선택적)
@@ -45,7 +45,7 @@ class Blockchain:
     def mine_block(self, transactions_to_mine, miner_wallet):
         """
         새로운 블록을 채굴합니다.
-        1. 코인베이스 트랜잭션 생성 (채굴 보상).
+        1. 코인베이스 트랜잭션 생성 (채굴자에게 보상).
         2. 주어진 트랜잭션들을 블록에 포함.
         3. 작업 증명 수행.
         4. 블록을 체인에 추가하고 UTXO 업데이트.
@@ -105,8 +105,20 @@ class Blockchain:
         if new_block.previous_hash != last_block.hash:
             print(f"Node {self.node_id}: 오류 - 이전 블록 해시 불일치.")
             return False
-        if new_block.hash != new_block.calculate_hash(): # PoW 결과와 블록 내용 일치 확인
+
+        print(f"Node {self.node_id}: add_block: Verifying block #{new_block.index}")
+        print(f"Node {self.node_id}: add_block: new_block.hash (from PoW/mine_block) = {new_block.hash}")
+        recalculated_hash = new_block.calculate_hash() # Call it once to avoid multiple calculations
+        print(f"Node {self.node_id}: add_block: new_block.calculate_hash() (recalculated) = {recalculated_hash}")
+
+        if new_block.hash != recalculated_hash: # PoW 결과와 블록 내용 일치 확인
             print(f"Node {self.node_id}: 오류 - 블록 해시 재계산 불일치 (PoW 문제 또는 데이터 변경).")
+            print(f"Node {self.node_id}: new_block details for failed hash check:")
+            print(f"  Index: {new_block.index}, Timestamp: {new_block.timestamp}")
+            print(f"  Prev Hash: {new_block.previous_hash}")
+            print(f"  Nonce: {new_block.nonce}") # Should be the nonce from PoW
+            print(f"  Merkle Root (in block obj): {new_block.merkle_root}") # Should be the merkle_root used for PoW
+            # To debug Block.calculate_hash(), one would need to see what it uses internally.
             return False
         # PoW 유효성 검사 (난이도 만족하는지)
         if not new_block.hash.startswith('0' * self.difficulty):

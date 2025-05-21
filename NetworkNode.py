@@ -117,13 +117,13 @@ class NetworkNode:
 
     def mine_new_block(self):
         """자신의 멤풀에서 트랜잭션을 가져와 새로운 블록을 채굴하고 전파합니다."""
-        if not self.mempool:
-            # print(f"Node {self.node_id}: 채굴할 트랜잭션이 멤풀에 없습니다.")
-            return None
+        # 멤풀이 비어있더라도 코인베이스 트랜잭션을 포함한 블록을 채굴할 수 있어야 합니다.
+        # 예를 들어, 첫 블록은 코인베이스 트랜잭션만 가질 수 있습니다.
+        # print(f"Node {self.node_id}: 채굴 시도. 현재 멤풀 크기: {len(self.mempool)}") # 디버깅용 로그
 
         # 멤풀에서 트랜잭션 선택 (실제로는 수수료 기반 등으로 선택)
         # 여기서는 멤풀의 모든 트랜잭션을 가져옴 (간단화)
-        transactions_to_mine = list(self.mempool.values())
+        transactions_to_mine = list(self.mempool.values()) # 멤풀이 비어있으면 빈 리스트가 됨
 
         # 채굴 시도
         new_block = self.blockchain.mine_block(transactions_to_mine, self.wallet)
